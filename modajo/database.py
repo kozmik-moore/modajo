@@ -1,18 +1,8 @@
-from os import PathLike
-from os.path import abspath
-
 from flask import current_app
-from sqlalchemy import create_engine, or_
+from sqlalchemy import or_
 
 from modajo import db
 from modajo.models import Journal
-
-
-# def get_sqlite_engine(path: PathLike | str = 'journals.db'):
-#     pathstring = 'sqlite://'
-#     if path is not None:
-#         pathstring = pathstring + '/' + str(abspath(path))
-#     return create_engine(pathstring)
 
 #  TODO add logging for all of these functions
 def get_journal(handle: int | str):
@@ -30,6 +20,31 @@ def get_journal(handle: int | str):
             return journal
     else:
         raise TypeError(f'handle must be of type \'int\' or \'str\', not \'{type(handle)}\'')
+
+
+def search_journals(name: str = None,
+                    enabled: bool = None,
+                    visible: bool = None,
+                    trash: bool = None):
+    """
+    Searches for journals with the given attributes. Supports partial matching
+    :param name: the name of the journal (can be a partial match)
+    :param enabled: whether the journal is enabled for editing
+    :param visible: whether the journal is visible in all interfaces
+    :param trash: whether the journal is in the trash
+    :return: a list of Journal objects
+    """
+    stmt = db.select(Journal)
+    if name is not None:
+        stmt = stmt.where(Journal.name.ilike(f'%{name}%'))
+    if enabled is not None:
+        stmt = stmt.where(Journal.enabled == enabled)
+    if visible is not None:
+        stmt = stmt.where(Journal.visible == enabled)
+    if trash is not None:
+        stmt = stmt.where(Journal.trash == trash)
+    results: list[Journal] = list(db.session.scalars(stmt))
+    return results
 
 
 def create_journal(name: str, enabled: bool = True, visible: bool = True):
@@ -97,11 +112,3 @@ def delete_journal(journal: int | str | Journal):
     db.session.delete(journal)
     db.session.commit()
     current_app.logger.info(f'Deleted the journal named \'{name}\'')
-
-
-def edit_journal_settings(**kwargs):
-    """"""
-    if 'visible' in kwargs:
-        pass
-    if 'enabled' in kwargs:
-        pass
