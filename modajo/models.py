@@ -1,6 +1,7 @@
 from typing import List, Any
 
 from sqlalchemy import ForeignKey
+from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from modajo import db
@@ -54,8 +55,22 @@ class Record(db.Model):
     trash: Mapped[bool] = mapped_column(nullable=False)
 
     journal: Mapped['Journal'] = relationship(back_populates='records')
-    contents: Mapped[List['FieldContent']] = relationship(back_populates='record')
-    # TODO add relationship to association table for 'tags'
+    contents: Mapped[List['FieldContent']] = relationship(back_populates='record')  # TODO add cascade
+    recordtags: Mapped[List['RecordTag']] = relationship(back_populates='record', cascade='all, delete-orphan')
+
+    tags: AssociationProxy[List['Tag']] = association_proxy('recordtags', 'tag')
+
+
+class RecordTag(db.Model):
+    __tablename__ = 'record_tags'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
+    tag_id: Mapped[int] = mapped_column(ForeignKey('tags.id'), nullable=False)
+    trash: Mapped[bool] = mapped_column(nullable=False)
+
+    journal: Mapped['Journal'] = relationship(ForeignKey('journals.id'), back_populates='record_tag')
+    tag: Mapped['Tag'] = relationship(ForeignKey('journals.id'), back_populates='record_tag')
 
 
 class Tag(db.Model):
@@ -67,7 +82,9 @@ class Tag(db.Model):
     trash: Mapped[bool] = mapped_column(nullable=False)
 
     journal: Mapped['Journal'] = relationship(back_populates='tags')
-    # TODO add relationship to association table for 'records'
+    recordtags: Mapped[List['RecordTag']] = relationship(back_populates='tag', cascade='all, delete-orphan')
+
+    records: AssociationProxy[List['Record']] = association_proxy('recordtags', 'record')
 
     def __repr__(self):
         return f'Tag(name={self.name}, journal={self.journal.name}'
