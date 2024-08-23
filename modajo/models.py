@@ -60,6 +60,9 @@ class Record(db.Model):
 
     tags: AssociationProxy[List['Tag']] = association_proxy('recordtags', 'tag')
 
+    def __repr__(self):
+        return f'Record(id={self.id}, journal={self.journal.name})'
+
 
 class RecordTag(db.Model):
     __tablename__ = 'record_tags'
@@ -69,8 +72,11 @@ class RecordTag(db.Model):
     tag_id: Mapped[int] = mapped_column(ForeignKey('tags.id'), nullable=False)
     trash: Mapped[bool] = mapped_column(nullable=False)
 
-    journal: Mapped['Journal'] = relationship(ForeignKey('journals.id'), back_populates='record_tag')
-    tag: Mapped['Tag'] = relationship(ForeignKey('journals.id'), back_populates='record_tag')
+    record: Mapped['Record'] = relationship(ForeignKey('records.id'), back_populates='record_tag')
+    tag: Mapped['Tag'] = relationship(ForeignKey('tags.id'), back_populates='record_tag')
+
+    def __repr__(self):
+        return f'RecordTag(id={self.id}, journal={self.journal.name}, record={self.record.id}, tag={self.tag.name})'
 
 
 class Tag(db.Model):
