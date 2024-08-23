@@ -1,4 +1,4 @@
-from os.path import join, exists
+from os.path import join, exists, abspath
 
 from instance import SECRET_KEY, STORAGE_PATH
 
@@ -8,6 +8,7 @@ MEMORY = 'sqlite://'
 class Config(object):
     SECRET_KEY = SECRET_KEY or '9efdc4acf5de2e3b5dcf8a2322e41a024ae72504ad06e191'
     TRACK_MODIFICATIONS = False
+    STORAGE = abspath(STORAGE_PATH or '..')
 
 
 class TestingConfig(Config):
