@@ -1,8 +1,9 @@
 from flask import current_app
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from modajo import db
-from modajo.models import Journal
+from modajo.models import Journal, JournalField
+
 
 #  TODO add logging for all of these functions
 def get_journal(handle: int | str):
@@ -112,3 +113,26 @@ def delete_journal(journal: int | str | Journal):
     db.session.delete(journal)
     db.session.commit()
     current_app.logger.info(f'Deleted the journal named \'{name}\'')
+
+
+def get_field(handle: str | int, journal: str | int | Journal = None):
+    """
+    Gets a field from a specific journal
+    :param handle: the name or id of the field
+    :param journal: the journal the field is part of (optional if field id is supplied)
+    :return: a JournalField object
+    """
+    stmt = db.select(JournalField)
+    if journal is None and isinstance(handle, int):
+        stmt = stmt.where(JournalField.id == handle)
+    elif journal is None:
+        raise ValueError(f'Field is accessed either by id or a combination of name and journal')
+    else:
+        if not isinstance(journal, Journal):
+            journal = get_journal(journal)
+        stmt = stmt.where(and_(JournalField.name == handle, JournalField.journal == journal))
+    field: JournalField | None = db.session.scalar(stmt)
+    if field:
+        return field
+    else:
+        raise ValueError('No field found')
