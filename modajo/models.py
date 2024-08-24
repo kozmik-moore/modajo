@@ -35,8 +35,9 @@ class JournalField(db.Model):
     group_id: Mapped[int] = mapped_column(ForeignKey('journal_fields.id'), nullable=True)
     displayname: Mapped[str] = mapped_column(nullable=False)
     visible: Mapped[bool] = mapped_column(nullable=False)
-    unique: Mapped[bool] = mapped_column(nullable=False)  # whether multiple records allowed per journal entry
+    multiple_allowed: Mapped[bool] = mapped_column(nullable=False)  # whether multiple records allowed per journal entry
     trash: Mapped[bool] = mapped_column(nullable=False)
+    # TODO add column for default values
 
     journal: Mapped['Journal'] = relationship(back_populates='fields')
     # TODO address issue where groupfield of type 'meta' is deleted but sub-fields are not (is there an issue?)

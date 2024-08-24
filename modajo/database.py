@@ -5,6 +5,26 @@ from modajo import db
 from modajo.models import Journal, JournalField
 
 
+FIELDTYPES = {
+    'integer': {},
+    'float': {},
+    'string': {'length': -1},
+    'text': {'length': -1},  # Like 'string' but allows spaces
+    'tag': {'length': -1, 'multiple_allowed': 'true'},  # Like 'string' but allows spaces
+    'timestamp': {'resolution': 'second'},
+    'duration': {'resolution': 'second'},
+    'session': {
+        'start': {'type': 'timestamp'},
+        'end': {'type': 'timestamp'},
+        'duration': {'type': 'duration'},
+    },
+    'attachment': {
+        'filename': {'type': 'string', 'length': -1},
+        'uuid': {'type': 'string', 'visible': 'false'}
+    }
+}
+
+
 #  TODO add logging for all of these functions
 def get_journal(handle: int | str):
     """
@@ -136,3 +156,62 @@ def get_field(handle: str | int, journal: str | int | Journal = None):
         return field
     else:
         raise ValueError('No field found')
+
+
+def create_field(journal: str | int | Journal,
+                 fieldname: str,
+                 fieldtype: str,
+                 displayname: str,
+                 group: str | int | JournalField = None,
+                 visible: bool = True,
+                 multiple_allowed: bool = False,
+                 ):
+    """
+    Creates a field in a journal
+    :param journal: the journal that the field is added to
+    :param fieldname: the database name of the field
+    :param fieldtype: the type of the field
+    :param displayname: the interface name of the field
+    :param group: if part of multi-field, like "attachment", the group the field belongs to
+    :param visible: whether the field is visible in the interface
+    :param multiple_allowed: whether this field supports multiple entries per record
+    :return: a JournalField object
+    """
+
+
+def create_session_field(fieldname,
+                         displayname,
+                         group = None,
+                         start = True,
+                         end = True,
+                         duration = True,
+                         visible = True,
+                         multiple_allowed = False):
+    """
+    Creates a session group field with options. Assumes one session per record.
+    :param fieldname:
+    :param displayname:
+    :param group:
+    :param start:
+    :param end:
+    :param duration:
+    :param visible:
+    :param multiple_allowed:
+    :return:
+    """
+
+
+def create_attachment_field(fieldname,
+                            displayname,
+                            group = None,
+                            visible = True,
+                            multiple_allowed = True):
+    """
+    Creates an attachment group field. Assumes multiple attachments per record.
+    :param fieldname:
+    :param displayname:
+    :param group:
+    :param visible:
+    :param multiple_allowed:
+    :return:
+    """
