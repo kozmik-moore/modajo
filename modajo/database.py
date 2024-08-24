@@ -5,25 +5,37 @@ from modajo import db
 from modajo.models import Journal, JournalField
 
 
-FIELDTYPES = {
-    'integer': {},
-    'float': {},
-    'string': {'length': -1},
-    'text': {'length': -1},  # Like 'string' but allows spaces
-    'tag': {'length': -1, 'multiple_allowed': 'true'},  # Like 'string' but allows spaces
-    'timestamp': {'resolution': 'second'},
-    'duration': {'resolution': 'second'},
-    'session': {
-        'start': {'type': 'timestamp'},
-        'end': {'type': 'timestamp'},
-        'duration': {'type': 'duration'},
-    },
-    'attachment': {
-        'filename': {'type': 'string', 'length': -1},
-        'uuid': {'type': 'string', 'visible': 'false'}
-    }
-}
+# FIELDTYPES = {  # TODO definitions need improvement (Python types?)
+#     'integer': {},
+#     'float': {},
+#     'string': {'length': -1},  # -1 for length indicates "unlimited"
+#     'text': {'length': -1},  # Like 'string' but allows whitespace
+#     'tag': {'length': -1, 'multiple_allowed': 'true'},  # Like 'string' but allows single spaces
+#     'timestamp': {'resolution': 'second'},
+#     'duration': {'resolution': 'second'},
+#     'session': {
+#         'start': {'type': 'timestamp'},
+#         'end': {'type': 'timestamp'},
+#         'duration': {'type': 'duration'},
+#     },
+#     'attachment': {
+#         'filename': {'type': 'string'},
+#         'uuid': {'type': 'string'}
+#     }
+# }
 
+FIELDTYPES = [
+    'integer',
+    'float',
+    'string',
+    'text',
+    'tag',
+    'timestamp',
+    'duration',
+    'session',
+    'attachment',
+    'group'
+]
 
 #  TODO add logging for all of these functions
 def get_journal(handle: int | str):
