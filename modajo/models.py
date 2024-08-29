@@ -1,7 +1,6 @@
-from typing import List, Any
+from typing import List
 
-from sqlalchemy import ForeignKey
-from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
+from sqlalchemy import ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from modajo import db
@@ -16,36 +15,104 @@ class Journal(db.Model):
     visible: Mapped[bool] = mapped_column(nullable=False)
     trash: Mapped[bool] = mapped_column(nullable=False)
 
-    fields: Mapped[List['JournalField']] = relationship(back_populates='journal', cascade='all, delete')
+    fields: Mapped[List['Field']] = relationship(back_populates='journal', cascade='all, delete')
     records: Mapped[List['Record']] = relationship(back_populates='journal', cascade='all, delete')
-    tags: Mapped[List['Tag']] = relationship(back_populates='journal', cascade='all, delete')
-    contents: Mapped[List['FieldContent']] = relationship(back_populates='journal', cascade='all, delete')
+    contents: Mapped[List['Content']] = relationship(back_populates='journal', cascade='all, delete')
 
     def __repr__(self):
         return f'Journal(name={self.name}, enabled={self.enabled}, visible={self.visible}'
 
 
-class JournalField(db.Model):
-    __tablename__ = 'journal_fields'
+class Field(db.Model):
+    __tablename__ = 'fields'
 
     id: Mapped[int] = mapped_column(primary_key=True)
     journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
     fieldname: Mapped[str] = mapped_column(nullable=False)
     fieldtype: Mapped[str] = mapped_column(nullable=False)
-    group_id: Mapped[int] = mapped_column(ForeignKey('journal_fields.id'), nullable=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey('fields.id'), nullable=True)
     displayname: Mapped[str] = mapped_column(nullable=False)
-    visible: Mapped[bool] = mapped_column(nullable=False)
-    multiple_allowed: Mapped[bool] = mapped_column(nullable=False)  # whether multiple records allowed per journal entry
+    visible: Mapped[bool] = mapped_column(nullable=False, default=True)
+    multiple_allowed: Mapped[bool] = mapped_column(nullable=False, default=False)  # whether multiple records allowed per journal entry
+    metadata: Mapped[JSON] = mapped_column(nullable=True)
     trash: Mapped[bool] = mapped_column(nullable=False)
-    # TODO add column for default values
 
     journal: Mapped['Journal'] = relationship(back_populates='fields')
     # TODO address issue where groupfield of type 'meta' is deleted but sub-fields are not (is there an issue?)
-    group: Mapped['JournalField'] = relationship()
-    contents: Mapped['FieldContent'] = relationship(back_populates='field', cascade='all, delete')
+    group: Mapped['Field'] = relationship()  # TODO check if this is the correct way to self-reference table
+    contents: Mapped['Content'] = relationship(back_populates='field', cascade='all, delete')
 
     def __repr__(self):
-        return f'Journal(name={self.fieldname}, enabled={self.enabled}, visible={self.visible}'
+        return f'Field(name={self.fieldname}, journal={self.journal.name}, type={self.fieldtype}'
+
+
+# class IntegerField(db.Model):
+#     __tablename__ = 'integer_fields'
+#
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
+#     field_id: Mapped[int] = mapped_column(ForeignKey('fields.id'), nullable=False)
+#     minimum: Mapped[int] = mapped_column(nullable=True)
+#     maximum: Mapped[int] = mapped_column(nullable=True)
+#     trash: Mapped[bool] = mapped_column(nullable=False)
+#
+#     field: Mapped['Field'] = relationship(back_populates='integer_field')
+#     journal: Mapped['Journal'] = relationship()
+#
+#     def __repr__(self):
+#         return f'IntegerField(field={self.field.fieldname}, journal={self.journal.name})'
+#
+#
+# class FloatField(db.Model):
+#     __tablename__ = 'float_fields'
+#
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
+#     field_id: Mapped[int] = mapped_column(ForeignKey('fields.id'), nullable=False)
+#     minimum: Mapped[float] = mapped_column(nullable=True)
+#     maximum: Mapped[float] = mapped_column(nullable=True)
+#     round: Mapped[int] = mapped_column(nullable=False, default=3)
+#     trash: Mapped[bool] = mapped_column(nullable=False)
+#
+#     field: Mapped['Field'] = relationship(back_populates='float_field')
+#     journal: Mapped['Journal'] = relationship()
+#
+#     def __repr__(self):
+#         return f'FloatField(field={self.field.fieldname}, journal={self.journal.name})'
+#
+#
+# class StringField(db.Model):
+#     __tablename__ = 'string_fields'
+#
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
+#     field_id: Mapped[int] = mapped_column(ForeignKey('fields.id'), nullable=False)
+#     length: Mapped[int] = mapped_column(nullable=True, default=-1)
+#     trash: Mapped[bool] = mapped_column(nullable=False)
+#
+#     field: Mapped['Field'] = relationship(back_populates='string_field')
+#     journal: Mapped['Journal'] = relationship()
+#
+#     def __repr__(self):
+#         return f'StringField(field={self.field.fieldname}, journal={self.journal.name})'
+#
+#
+# class TimeField(db.Model):
+#     __tablename__ = 'time_fields'
+#
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
+#     field_id: Mapped[int] = mapped_column(ForeignKey('fields.id'), nullable=False)
+#     resolution: Mapped[str] = mapped_column(nullable=True, default='second')
+#     format: Mapped[str] = mapped_column(nullable=True, default='%Y-%m-%dT%h:%m:%s')
+#     displayformat: Mapped[str] = mapped_column(nullable=True, default='%Y-%m-%d %h:%m:%s')
+#     trash: Mapped[bool] = mapped_column(nullable=False)
+#
+#     field: Mapped['Field'] = relationship(back_populates='time_field')
+#     journal: Mapped['Journal'] = relationship()
+#
+#     def __repr__(self):
+#         return f'TimeField(field={self.field.fieldname}, journal={self.journal.name})'
 
 
 class Record(db.Model):
@@ -56,63 +123,30 @@ class Record(db.Model):
     trash: Mapped[bool] = mapped_column(nullable=False)
 
     journal: Mapped['Journal'] = relationship(back_populates='records')
-    contents: Mapped[List['FieldContent']] = relationship(back_populates='record')  # TODO add cascade
-    recordtags: Mapped[List['RecordTag']] = relationship(back_populates='record', cascade='all, delete-orphan')
-
-    tags: AssociationProxy[List['Tag']] = association_proxy('recordtags', 'tag')
+    contents: Mapped[List['Content']] = relationship(back_populates='record')  # TODO add cascade
 
     def __repr__(self):
         return f'Record(id={self.id}, journal={self.journal.name})'
 
 
-class RecordTag(db.Model):
-    __tablename__ = 'record_tags'
+class Content(db.Model):
+    __tablename__ = 'contents'
 
     id: Mapped[int] = mapped_column(primary_key=True)
     journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
-    tag_id: Mapped[int] = mapped_column(ForeignKey('tags.id'), nullable=False)
-    trash: Mapped[bool] = mapped_column(nullable=False)
-
-    record: Mapped['Record'] = relationship(ForeignKey('records.id'), back_populates='record_tag')
-    tag: Mapped['Tag'] = relationship(ForeignKey('tags.id'), back_populates='record_tag')
-
-    def __repr__(self):
-        return f'RecordTag(id={self.id}, journal={self.journal.name}, record={self.record.id}, tag={self.tag.name})'
-
-
-class Tag(db.Model):
-    __tablename__ = 'tags'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(nullable=False)
-    journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
-    trash: Mapped[bool] = mapped_column(nullable=False)
-
-    journal: Mapped['Journal'] = relationship(back_populates='tags')
-    recordtags: Mapped[List['RecordTag']] = relationship(back_populates='tag', cascade='all, delete-orphan')
-
-    records: AssociationProxy[List['Record']] = association_proxy('recordtags', 'record')
-
-    def __repr__(self):
-        return f'Tag(name={self.name}, journal={self.journal.name}'
-
-
-class FieldContent(db.Model):
-    __tablename__ = 'field_contents'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
-    field_id: Mapped[int] = mapped_column(ForeignKey('journal_fields.id'), nullable=False)
+    field_id: Mapped[int] = mapped_column(ForeignKey('fields.id'), nullable=False)
     record_id: Mapped[int] = mapped_column(ForeignKey('records.id'), nullable=False)
-    parent_id: Mapped[int] = mapped_column(ForeignKey('field_contents.id'), nullable=True)
-    contents: Mapped[Any] = mapped_column(nullable=True)
+    parent_id: Mapped[int] = mapped_column(ForeignKey('contents.id'), nullable=True)
+    content: Mapped[str] = mapped_column(nullable=True)
     trash: Mapped[bool] = mapped_column(nullable=False)
 
     journal: Mapped['Journal'] = relationship(back_populates='contents')
-    parent: Mapped['FieldContent'] = relationship(back_populates='children')
-    children: Mapped['FieldContent'] = relationship(back_populates='parent')
-    field: Mapped['JournalField'] = relationship(back_populates='contents')
+    parent: Mapped['Content'] = relationship(back_populates='children')
+    children: Mapped['Content'] = relationship(back_populates='parent')
+    field: Mapped['Field'] = relationship(back_populates='contents')
     record: Mapped['Record'] = relationship(back_populates='contents')
 
     def __repr__(self):
-        return f'FieldData(id={self.id}, journal={self.journal.name}'
+        return f'Contents(id={self.id}, journal={self.journal.name}'
+
+
