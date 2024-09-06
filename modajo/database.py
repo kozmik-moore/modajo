@@ -4,25 +4,6 @@ from sqlalchemy import or_, and_
 from modajo import db
 from modajo.models import Journal, Field
 
-# FIELDTYPES = {  # TODO definitions need improvement (Python types?)
-#     'integer': {},
-#     'float': {},
-#     'string': {'length': -1},  # -1 for length indicates "unlimited"
-#     'text': {'length': -1},  # Like 'string' but allows whitespace
-#     'tag': {'length': -1, 'multiple_allowed': 'true'},  # Like 'string' but allows single spaces
-#     'timestamp': {'resolution': 'second'},
-#     'duration': {'resolution': 'second'},
-#     'session': {
-#         'start': {'type': 'timestamp'},
-#         'end': {'type': 'timestamp'},
-#         'duration': {'type': 'duration'},
-#     },
-#     'attachment': {
-#         'filename': {'type': 'string'},
-#         'uuid': {'type': 'string'}
-#     }
-# }
-
 RESOLUTIONS = [
     'year',
     'month',
