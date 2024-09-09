@@ -93,7 +93,7 @@ def create_journal(name: str, enabled: bool = True, visible: bool = True):
     :param visible: whether the journal is visible in all interfaces
     :return: a Journal object
     """
-    check = get_journal(name)
+    check = get_journal(name)  # Check if a journal with the name already exists
     if not check:
         journal = Journal()
         journal.name = name
@@ -128,14 +128,25 @@ def update_journal(journal: int | str | Journal,
     elif name:
         raise ValueError(f'A journal with the name \'{name}\' already exists.')
     if enabled is not None:
-        journal.enabled = enabled
+        if isinstance(enabled, bool):
+            journal.enabled = enabled
+        else:
+            raise TypeError(f'\'enabled\' must be of type bool')
     if visible is not None:
-        journal.visible = visible
+        if isinstance(visible, bool):
+            journal.visible = visible
+        else:
+            raise TypeError(f'\'visible\' must be of type bool')
     if trash is not None:
-        journal.trash = trash
-
-    # TODO change "trash" status of all tags, fields and contents
-    current_app.logger.info(f'Deleted the journal named \'{name}\'')
+        if isinstance(trash, bool):
+            # TODO change "trash" status of all tags, fields and contents
+            journal.trash = trash
+        else:
+            raise TypeError(f'\'trash\' must be of type bool')
+    db.session.add(journal)
+    db.session.commit()
+    current_app.logger.info(f'Updated the journal named \'{name}\'')
+    return journal
 
 
 def delete_journal(journal: int | str | Journal):
@@ -172,7 +183,7 @@ def get_field(handle: str | int, journal: str | int | Journal = None):
     if field:
         return field
     else:
-        raise ValueError('No field found')
+        raise ValueError('No field found with those parameters')
 
 
 def search_fields(journal: str | int | Journal,
@@ -228,65 +239,6 @@ def search_fields(journal: str | int | Journal,
         elif v is not None:
             raise TypeError(f'\'{a}\' must be of type bool')
     return list(db.session.scalars(stmt))
-
-
-def create_field(journal: str | int | Journal,
-                 fieldname: str,
-                 fieldtype: str,
-                 displayname: str,
-                 group: str | int | Field = None,
-                 visible: bool = True,
-                 multiple_allowed: bool = False,
-                 **kwargs
-                 ):
-    """
-    Creates a single field in a journal
-    :param journal: the journal that the field is added to
-    :param fieldname: the database name of the field
-    :param fieldtype: the type of the field
-    :param displayname: the interface name of the field
-    :param group: if part of multi-field, like "attachment", the group the field belongs to
-    :param visible: whether the field is visible in the interface
-    :param multiple_allowed: whether this field supports multiple entries per record
-    :return: a JournalField object
-    """
-    if not isinstance(journal, Journal):
-        journal = get_journal(journal)
-    if get_field(fieldname, journal):
-        raise ValueError(f'Fieldname \'{fieldname}\' in journal \'{journal.name}\' already exists')
-    stmt = db.select(Field).where(and_(Field.displayname == displayname, Field.journal == journal))
-    if db.session.scalar(stmt):
-        raise ValueError(f'Displayname \'{displayname}\' in journal \'{journal.name}\' already exists')
-    if not isinstance(group, Field):
-        group = get_field(group, journal)
-    if fieldtype not in FIELDTYPES:
-        raise ValueError(f'\'{fieldtype}\' is not an accepted field type')
-    elif fieldtype == 'group':
-        raise TypeError('Use \'create_group_field\' to create a new group (i.e. "compound") field')
-    elif fieldtype == 'session':
-        options = dict(journal=journal,
-                       fieldname=fieldname,
-                       displayname=displayname,
-                       visible=visible,
-                       multiple_allowed=multiple_allowed)
-        if 'start' in kwargs:
-            if isinstance(kwargs['start'], str):
-                pass
-
-        create_session_field(**options)
-
-
-def create_group_field(journal,
-                       fieldname,
-                       fieldtype,
-                       displayname,
-                       group,
-                       visible,
-                       multiple_allowed):
-    """
-    Creates a group (i.e. compound) field in a journal
-    :return:
-    """
 
 
 def create_primitive_field(journal: str | int | Journal,
@@ -356,6 +308,19 @@ def create_primitive_field(journal: str | int | Journal,
     return field
 
 
+def create_group_field(journal,
+                       fieldname,
+                       fieldtype,
+                       displayname,
+                       group,
+                       visible,
+                       multiple_allowed):
+    """
+    Creates a group (i.e. compound) field in a journal
+    :return:
+    """
+
+
 def create_session_field(journal: str | int | Journal,
                          fieldname: str,
                          displayname: str,
@@ -413,3 +378,49 @@ def create_attachment_field(fieldname,
     :param multiple_allowed:
     :return:
     """
+
+
+def create_field(journal: str | int | Journal,
+                 fieldname: str,
+                 fieldtype: str,
+                 displayname: str,
+                 group: str | int | Field = None,
+                 visible: bool = True,
+                 multiple_allowed: bool = False,
+                 **kwargs
+                 ):
+    """
+    Creates a single field in a journal
+    :param journal: the journal that the field is added to
+    :param fieldname: the database name of the field
+    :param fieldtype: the type of the field
+    :param displayname: the interface name of the field
+    :param group: if part of multi-field, like "attachment", the group the field belongs to
+    :param visible: whether the field is visible in the interface
+    :param multiple_allowed: whether this field supports multiple entries per record
+    :return: a JournalField object
+    """
+    if not isinstance(journal, Journal):
+        journal = get_journal(journal)
+    if get_field(fieldname, journal):
+        raise ValueError(f'Fieldname \'{fieldname}\' in journal \'{journal.name}\' already exists')
+    stmt = db.select(Field).where(and_(Field.displayname == displayname, Field.journal == journal))
+    if db.session.scalar(stmt):
+        raise ValueError(f'Displayname \'{displayname}\' in journal \'{journal.name}\' already exists')
+    if not isinstance(group, Field):
+        group = get_field(group, journal)
+    if fieldtype not in FIELDTYPES:
+        raise ValueError(f'\'{fieldtype}\' is not an accepted field type')
+    elif fieldtype == 'group':
+        raise TypeError('Use \'create_group_field\' to create a new group (i.e. "compound") field')
+    elif fieldtype == 'session':
+        options = dict(journal=journal,
+                       fieldname=fieldname,
+                       displayname=displayname,
+                       visible=visible,
+                       multiple_allowed=multiple_allowed)
+        if 'start' in kwargs:
+            if isinstance(kwargs['start'], str):
+                pass
+
+        create_session_field(**options)
