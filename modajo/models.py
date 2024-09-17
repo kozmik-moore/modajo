@@ -14,6 +14,7 @@ class Journal(db.Model):
     name: Mapped[str] = mapped_column(nullable=False)
     enabled: Mapped[bool] = mapped_column(nullable=False)
     visible: Mapped[bool] = mapped_column(nullable=False)
+    fieldorder: Mapped[str] = mapped_column(nullable=False)
     trash: Mapped[bool] = mapped_column(nullable=False)
 
     fields: Mapped[List['Field']] = relationship(back_populates='journal', cascade='all, delete')
@@ -44,8 +45,7 @@ class Field(db.Model):
     trash: Mapped[bool] = mapped_column(nullable=False)
 
     journal: Mapped['Journal'] = relationship(back_populates='fields')
-    # TODO address issue where groupfield of type 'meta' is deleted but sub-fields are not (is there an issue?)
-    group: Mapped['Field'] = relationship()  # TODO check if this is the correct way to self-reference table
+    group: Mapped['GroupField'] = relationship()
     integer_content: Mapped[List['IntegerContent']] = relationship(back_populates='field')
     float_content: Mapped[List['FloatContent']] = relationship(back_populates='field')
     string_content: Mapped[List['StringContent']] = relationship(back_populates='field')
@@ -55,7 +55,51 @@ class Field(db.Model):
     attachment_content: Mapped[List['AttachmentContent']] = relationship(back_populates='field')
 
     def __repr__(self):
-        return f'Field(name={self.fieldname}, journal={self.journal.name}, type={self.fieldtype}'
+        return f'Field(name={self.fieldname}, journal={self.journal.name}'
+
+
+class GroupField(db.Model):
+    __tablename__ = 'group_fields'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
+    fieldname: Mapped[str] = mapped_column(nullable=False)
+    group_id: Mapped[int] = mapped_column(ForeignKey('group_fields.id'), nullable=True)
+    displayname: Mapped[str] = mapped_column(nullable=False)
+    visible: Mapped[bool] = mapped_column(nullable=False, default=False)
+    multiple_allowed: Mapped[bool] = mapped_column(nullable=False, default=False)  # whether multiple records allowed per journal entry
+    trash: Mapped[bool] = mapped_column(nullable=False)
+
+    journal: Mapped['Journal'] = relationship(back_populates='fields')
+    group: Mapped['GroupField'] = relationship(back_populates='subgroups')
+    subgroups: Mapped[List['GroupField']] = relationship(back_populates='group')  # TODO check if this is the correct way to self-reference table
+    integer_content: Mapped[List['IntegerContent']] = relationship(back_populates='field')
+
+    def __repr__(self):
+        return f'GroupField(name={self.fieldname}, journal={self.journal.name}, type={self.fieldtype}'
+
+
+class IntegerField(db.Model):
+    __tablename__ = 'integer_fields'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    journal_id: Mapped[int] = mapped_column(ForeignKey('journals.id'), nullable=False)
+    group_id: Mapped[int] = mapped_column(ForeignKey('group_fields.id'), nullable=True)
+    zero_allowed: Mapped[bool] = mapped_column(nullable=False, default=True)
+    min_value: Mapped[int] = mapped_column(nullable=True, default=0)
+    max_value: Mapped[int] = mapped_column(nullable=True, default=0)
+    fieldname: Mapped[str] = mapped_column(nullable=False)
+    displayname: Mapped[str] = mapped_column(nullable=False)
+    visible: Mapped[bool] = mapped_column(nullable=False, default=True)
+    multiple_allowed: Mapped[bool] = mapped_column(nullable=False, default=False)  # whether multiple records allowed per journal entry
+    trash: Mapped[bool] = mapped_column(nullable=False)
+
+    journal: Mapped['Journal'] = relationship(back_populates='integer_fields')
+    group: Mapped['Field'] = relationship()
+    integer_content: Mapped[List['IntegerContent']] = relationship(back_populates='field')
+
+    def __repr__(self):
+        return f'IntegerField(name={self.fieldname}, journal={self.journal.name}, type={self.fieldtype}'
 
 
 class Record(db.Model):

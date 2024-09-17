@@ -272,7 +272,7 @@ def create_primitive_field(journal: str | int | Journal,
     if search_fields(journal, displayname=displayname, partial=False):  # Check if displayname already exists
         raise ValueError(f'Displayname \'{displayname}\' in journal \'{journal.name}\' already exists')
     if fieldtype not in PRIMITIVE_TYPES:  # Check fieldtype of primitive kind
-        raise ValueError(f'\'{fieldtype}\' is not of type {", ".join([f"\'{x}\'" for x in PRIMITIVE_TYPES])}')
+        raise ValueError(f'\'{fieldtype}\' must be one of {", ".join([f"\'{x}\'" for x in PRIMITIVE_TYPES])}')
     if group is not None and not isinstance(group, Field): # Get JournalField object, if needed
         group = get_field(group, journal)
     for n, a in dict(visible=visible, multiple_allowed=multiple_allowed).items(): # Check type
@@ -288,6 +288,12 @@ def create_primitive_field(journal: str | int | Journal,
             raise TypeError(f'\'resolution\' must be if type str')
         if resolution not in RESOLUTIONS:
             raise TypeError(f'\'{resolution}\' is not an accepted time unit resolution')
+    if not displayname :
+        raise ValueError(f'\'displayname\' required')
+    if not fieldtype:
+        raise ValueError(f'\'fieldtype\' required')
+    if not fieldname:
+        raise ValueError(f'\'fieldname\' required')
 
     # Create field, add to database and return
     field = Field()
